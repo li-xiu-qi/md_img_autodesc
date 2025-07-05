@@ -1,0 +1,42 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Env
+.env
+.venv/
+venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Output
+*.log
+*.out
+*.bak
+*.tmp
+
+# Markdown/AI outputs
+*_带描述.md
+
+# PyInstaller
+dist/
+build/
+*.spec
+
+# Windows exe
+*.exe

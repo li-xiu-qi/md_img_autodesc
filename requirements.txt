@@ -1,0 +1,13 @@
+# 项目依赖文件
+# 以下为根据项目源码自动分析的依赖包：
+openai
+python-dotenv
+pillow
+requests
+aiohttp
+aiofiles
+# 可能需要的依赖（如用到 web_serves 相关功能时）
+# fastapi
+# uvicorn
+# httpx
+
