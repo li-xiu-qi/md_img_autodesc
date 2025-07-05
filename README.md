@@ -53,28 +53,31 @@
 
 ## 使用方法
 
+
 使用 `main.py` 脚本来处理你的 Markdown 文件，默认使用智谱 glm-4v-flash 多模态模型。
 
 ```bash
-python main.py [输入文件路径] -o [输出文件路径]
+python main.py [输入文件路径] [-o 输出文件路径] [--provider 服务商] [--model 模型名]
 ```
 
 **参数说明:**
 
 - `输入文件路径`: 必需参数，指定要处理的原始 Markdown 文件的路径。
-- `-o, --output`: 可选参数，指定处理后新文件的保存路径。如果省略此参数，脚本将直接覆盖并更新原始文件。
+- `-o, --output`: 可选参数，指定处理后新文件的保存路径。
+    - 如果省略此参数，脚本会自动在原文件名基础上添加 `_with_desc` 后缀生成新文件，例如 `README.md` 会生成 `README_with_desc.md`。
 - `--provider`: 可选，指定服务商（zhipu 或 openai），默认 zhipu。
 - `--model`: 可选，指定多模态模型名，默认使用智谱 glm-4v-flash。
 
 **示例:**
 
-1. **处理文件并覆盖保存（默认智谱 flash）：**
+1. **处理文件并自动生成带描述的新文件（推荐）：**
 
     ```bash
     python main.py 量化.md
+    # 输出文件为 量化_with_desc.md
     ```
 
-2. **处理文件并保存为新文件：**
+2. **处理文件并自定义输出文件名：**
 
     ```bash
     python main.py 量化.md -o output.md
@@ -83,11 +86,13 @@ python main.py [输入文件路径] -o [输出文件路径]
 3. **使用 uv 运行（推荐 uv 用户）：**
 
     ```bash
-    uv run main.py 量化.md -o output.md
+    uv run main.py 量化.md
+    # 输出文件为 量化_with_desc.md
     ```
 
 4. **如需使用 OpenAI，可加参数：**
 
     ```bash
-    python main.py my_document.md -o my_document_with_desc.md --provider openai --model gpt-4o
+    python main.py my_document.md --provider openai --model gpt-4o
+    # 输出文件为 my_document_with_desc.md
     ```

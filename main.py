@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import os
 from convert_md import main as convert_main
 
 
@@ -23,7 +24,14 @@ def main():
     args = parser.parse_args()
 
     input_path = args.input
-    output_path = args.output if args.output else input_path  # 如果未提供输出路径，则覆盖原文件
+    
+    # 如果未提供输出路径，则在原文件名基础上添加 "_with_desc" 后缀
+    if args.output:
+        output_path = args.output
+    else:
+        # 分离文件名和扩展名
+        base_name, ext = os.path.splitext(input_path)
+        output_path = f"{base_name}_with_desc{ext}"
 
     asyncio.run(
         convert_main(
