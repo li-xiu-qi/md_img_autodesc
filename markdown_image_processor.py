@@ -23,16 +23,16 @@ def update_markdown_with_analysis(markdown_content: str, image_analysis_results:
             description = result.get("description", "")
             new_img = f"![{title}]({img_url})"
             if description:
-                # 保证描述在图片下方，链接结构不变
+                # 修复重复描述的问题：只在图片下方添加一次描述
                 return f"[{new_img}\n> {description}]({match.group(3)})"
             else:
                 return f"[{new_img}]({match.group(3)})"
         return match.group(0)
 
-    # 先处理嵌套图片链接
-    content = re.sub(r'\[!\[(.*?)\]\(([^)]+)\)\s*(?:\n>.*)?\]\(([^)]+)\)', replace_linked_image, markdown_content)
+    # 先处理嵌套图片链接 - 修复正则表达式，避免匹配到已经处理过的内容
+    content = re.sub(r'\[!\[(.*?)\]\(([^)]+)\)\]\(([^)]+)\)', replace_linked_image, markdown_content)
 
-    # 再处理普通图片
+    # 再处理普通图片 - 修改正则表达式，避免匹配到已经在链接内的图片
     def replace_image(match):
         original_path = match.group(1)
         normalized_path = original_path.replace("\\", "/")
@@ -47,7 +47,8 @@ def update_markdown_with_analysis(markdown_content: str, image_analysis_results:
                 new_image += f"\n> {description}"
             return new_image
         return match.group(0)
-    content = re.sub(r'!\[.*?\]\(([^)]+)\)', replace_image, content)
+    # 使用负向前瞻，避免匹配到在链接内的图片
+    content = re.sub(r'(?<!\[)!\[.*?\]\(([^)]+)\)', replace_image, content)
     return content
 
 
@@ -55,13 +56,15 @@ class MarkdownImageProcessor:
     """
     Markdown图片处理器 - 只分析本地图片并为其添加注释
     """
-    def __init__(self, max_concurrent: int = 3, api_key: str = None, base_url: str = None, vision_model: str = None, provider: str = "zhipu"):
+    def __init__(self, max_concurrent: int = 3, api_key: str = None, base_url: str = None, vision_model: str = None, provider: str = "zhipu", title_min_length: int = 10, description_min_length: int = 50):
         self.provider = provider
         self.vision_model = vision_model
         self.max_concurrent = max_concurrent
         self.api_key = api_key
         self.base_url = base_url
         self.image_analyzer = None
+        self.title_min_length = title_min_length
+        self.description_min_length = description_min_length
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
@@ -117,6 +120,14 @@ class MarkdownImageProcessor:
         if not images:
             self.logger.info("没有发现需要处理的图片，返回原始内容")
             return markdown_content
+        
+        # 为每个图片添加上下文信息
+        for img in images:
+            img_url = img.get("image_url") or img.get("rel_path", "")
+            if img_url:
+                context = self.extract_context_around_image(markdown_content, img_url)
+                img["context"] = context
+        
         image_results = await self.process_images(images)
         updated_content = update_markdown_with_analysis(markdown_content, image_results)
         return updated_content
@@ -156,6 +167,41 @@ class MarkdownImageProcessor:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.image_analyzer:
             await self.image_analyzer.__aexit__(exc_type, exc_val, exc_tb)
+
+    def extract_context_around_image(self, markdown_content: str, image_url: str, context_length: int = 300) -> str:
+        """
+        提取图片周围的上下文文本
+        """
+        # 找到图片在markdown中的位置
+        import re
+        
+        # 匹配图片的各种格式
+        patterns = [
+            rf'!\[.*?\]\({re.escape(image_url)}\)',
+            rf'\[!\[.*?\]\({re.escape(image_url)}\)\]\([^)]+\)'
+        ]
+        
+        for pattern in patterns:
+            matches = list(re.finditer(pattern, markdown_content))
+            if matches:
+                match = matches[0]
+                start_pos = match.start()
+                end_pos = match.end()
+                
+                # 提取前后文本
+                context_start = max(0, start_pos - context_length)
+                context_end = min(len(markdown_content), end_pos + context_length)
+                
+                context_text = markdown_content[context_start:context_end]
+                
+                # 清理上下文文本，移除图片标记
+                context_text = re.sub(r'!\[.*?\]\([^)]+\)', '', context_text)
+                context_text = re.sub(r'\[!\[.*?\]\([^)]+\)\]\([^)]+\)', '', context_text)
+                context_text = re.sub(r'\n+', '\n', context_text).strip()
+                
+                return context_text
+        
+        return ""
 
 
 async def main():

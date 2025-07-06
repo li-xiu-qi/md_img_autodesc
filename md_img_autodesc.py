@@ -1,10 +1,15 @@
 import argparse
 import asyncio
 import os
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv()
 
 def main():
     parser = argparse.ArgumentParser(description="Markdown Image Auto-desc.")
-    parser.add_argument("-i", "--input", help="Input markdown file path.")
+    parser.add_argument("input", nargs="?", help="Input markdown file path.")
+    parser.add_argument("-i", "--input-file", help="Input markdown file path (alternative).")
     parser.add_argument(
         "-o", "--output", help="Output markdown file path.", default=None
     )
@@ -33,7 +38,10 @@ def main():
     )
     args = parser.parse_args()
 
-    input_path = args.input
+    # 支持位置参数和命名参数两种方式
+    input_path = args.input or args.input_file
+    if not input_path:
+        parser.error("请提供输入文件路径，可以使用位置参数或 -i/--input-file 选项")
     # 如果未提供输出路径，则在原文件名基础上添加 "_with_desc" 后缀
     if args.output:
         output_path = args.output
@@ -41,9 +49,7 @@ def main():
         base_name, ext = os.path.splitext(input_path)
         output_path = f"{base_name}_with_desc{ext}"
 
-    from dotenv import load_dotenv
     from markdown_image_processor import MarkdownImageProcessor
-    load_dotenv()
     async def run():
         async with MarkdownImageProcessor(
             provider=args.provider,
