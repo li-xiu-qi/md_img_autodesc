@@ -5,11 +5,14 @@
 import os
 import asyncio
 import logging
+import time
+import json
 from typing import Dict, Any, List, Optional
 from PIL import Image
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 from image_analysis_utils import extract_json_content, image_to_base64_async
+from prompts import get_image_analysis_prompt
 load_dotenv()
 
 
@@ -54,6 +57,8 @@ class AsyncImageAnalysis:
         vision_model: str = None,
         prompt: Optional[str] = None,
         max_concurrent: int = 5,
+        title_min_length: int = 10,
+        description_min_length: int = 50,
     ):
         self.provider = provider.lower()
         if self.provider not in self.PROVIDER_CONFIGS:
@@ -72,11 +77,13 @@ class AsyncImageAnalysis:
         print(f"API基础URL: {self.base_url}")
         print(f"视觉模型: {self.vision_model}")
         self.client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        self.title_min_length = title_min_length
+        self.description_min_length = description_min_length
         # 设置提示词
         if prompt:
             self._prompt = prompt
         else:
-            self._prompt = "请为下图生成一个简洁的标题和细节描述，其中标题需要10字以上，描述需要在50字以上，返回JSON格式：{\"title\":..., \"description\":...}"
+            self._prompt = get_image_analysis_prompt(self.title_min_length, self.description_min_length)
         self.semaphore = asyncio.Semaphore(max_concurrent)
 
     async def analyze_image(
@@ -87,6 +94,8 @@ class AsyncImageAnalysis:
         detail: str = "low",
         prompt: str = None,
         temperature: float = 0.1,
+        title_min_length: int = None,
+        description_min_length: int = None,
     ) -> Dict[str, Any]:
         """
         异步分析图像并返回描述信息。
@@ -110,7 +119,15 @@ class AsyncImageAnalysis:
                 base64_image = await image_to_base64_async(local_image_path)
                 final_image_url = f"data:image/{image_format};base64,{base64_image}"
             model_to_use = model or self.vision_model
-            prompt_text = prompt or self._prompt
+            # 支持动态传入长度参数
+            if prompt:
+                prompt_text = prompt
+            elif title_min_length is not None or description_min_length is not None:
+                t_len = title_min_length if title_min_length is not None else self.title_min_length
+                d_len = description_min_length if description_min_length is not None else self.description_min_length
+                prompt_text = get_image_analysis_prompt(t_len, d_len)
+            else:
+                prompt_text = self._prompt
             try:
                 response = await self.client.chat.completions.create(
                     model=model_to_use,

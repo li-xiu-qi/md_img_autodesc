@@ -56,17 +56,21 @@
 
 使用 `main.py` 脚本来处理你的 Markdown 文件，默认使用智谱 glm-4v-flash 多模态模型。
 
+
 ```bash
-python main.py [输入文件路径] [-o 输出文件路径] [--provider 服务商] [--model 模型名]
+python main.py -i [输入文件路径] [-o 输出文件路径] [-p 服务商] [-m 模型名] [-t 标题最小字数] [-d 描述最小字数]
 ```
+
 
 **参数说明:**
 
-- `输入文件路径`: 必需参数，指定要处理的原始 Markdown 文件的路径。
+- `-i, --input`: 必需参数，指定要处理的原始 Markdown 文件的路径。
 - `-o, --output`: 可选参数，指定处理后新文件的保存路径。
     - 如果省略此参数，脚本会自动在原文件名基础上添加 `_with_desc` 后缀生成新文件，例如 `README.md` 会生成 `README_with_desc.md`。
-- `--provider`: 可选，指定服务商（zhipu 或 openai），默认 zhipu。
-- `--model`: 可选，指定多模态模型名，默认使用智谱 glm-4v-flash。
+- `-p, --provider`: 可选，指定服务商（zhipu 或 openai），默认 zhipu。
+- `-m, --model`: 可选，指定多模态模型名，默认使用智谱 glm-4v-flash。
+- `-t, --title-min-length`: 可选，指定图片标题（title）的最小字数，默认为 10。
+- `-d, --desc-min-length`: 可选，指定图片描述（alt）的最小字数，默认为 50。
 
 **示例:**
 
